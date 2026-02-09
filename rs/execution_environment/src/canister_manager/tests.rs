@@ -453,13 +453,19 @@ fn install_code(
 
 fn with_setup<F>(f: F)
 where
-    F: FnOnce(CanisterManager, ReplicatedState, SubnetId),
+    F: FnOnce(CanisterManager, ReplicatedState, SubnetId, &BTreeSet<PrincipalId>),
 {
     let subnet_id = subnet_test_id(1);
     let canister_manager = CanisterManagerBuilder::default()
         .with_subnet_id(subnet_id)
         .build();
-    f(canister_manager, initial_state(subnet_id, false), subnet_id)
+    let super_users = BTreeSet::new();
+    f(
+        canister_manager,
+        initial_state(subnet_id, false),
+        subnet_id,
+        &super_users,
+    );
 }
 
 #[test]
@@ -940,7 +946,7 @@ fn stop_a_running_canister() {
 
 #[test]
 fn stop_a_stopped_canister() {
-    with_setup(|canister_manager, mut state, _| {
+    with_setup(|canister_manager, mut state, _, super_users| {
         let sender = user_test_id(1);
         let canister_id = canister_test_id(0);
         let canister = get_stopped_canister(canister_id);
@@ -958,7 +964,7 @@ fn stop_a_stopped_canister() {
             call_id: Some(StopCanisterCallId::new(0)),
         };
         assert_eq!(
-            canister_manager.stop_canister(canister_id, stop_context, &mut state),
+            canister_manager.stop_canister(canister_id, stop_context, &mut state, &super_users),
             StopCanisterResult::AlreadyStopped {
                 cycles_to_return: Cycles::zero()
             }
@@ -974,7 +980,7 @@ fn stop_a_stopped_canister() {
 
 #[test]
 fn stop_a_stopped_canister_from_another_canister() {
-    with_setup(|canister_manager, mut state, _| {
+    with_setup(|canister_manager, mut state, _, super_users| {
         let controller = canister_test_id(1);
         let canister_id = canister_test_id(0);
         let canister = get_stopped_canister_with_controller(canister_id, controller.get());
@@ -995,7 +1001,7 @@ fn stop_a_stopped_canister_from_another_canister() {
             deadline: NO_DEADLINE,
         };
         assert_eq!(
-            canister_manager.stop_canister(canister_id, stop_context, &mut state),
+            canister_manager.stop_canister(canister_id, stop_context, &mut state, &super_users),
             StopCanisterResult::AlreadyStopped {
                 cycles_to_return: Cycles::from(cycles)
             }

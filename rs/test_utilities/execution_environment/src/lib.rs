@@ -190,6 +190,7 @@ pub fn test_registry_settings() -> RegistryExecutionSettings {
         node_ids: BTreeSet::new(),
         registry_version: RegistryVersion::default(),
         canister_cycles_cost_schedule: ic_types::batch::CanisterCyclesCostSchedule::Normal,
+        super_users: BTreeSet::new(),
     }
 }
 
@@ -2449,6 +2450,11 @@ impl ExecutionTestBuilder {
         } else {
             FlagStatus::Disabled
         };
+        self
+    }
+
+    pub fn with_super_users(mut self, super_users: Vec<PrincipalId>) -> Self {
+        self.registry_settings.super_users = super_users.into_iter().collect();
         self
     }
 

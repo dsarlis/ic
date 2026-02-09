@@ -670,6 +670,7 @@ fn make_batch_processor<RegistryClient_: RegistryClient + 'static>(
         node_ids: BTreeSet::new(),
         registry_version: RegistryVersion::default(),
         canister_cycles_cost_schedule: ic_types::batch::CanisterCyclesCostSchedule::Normal,
+        super_users: BTreeSet::new(),
     }));
     let batch_processor = BatchProcessorImpl {
         state_manager: state_manager.clone(),

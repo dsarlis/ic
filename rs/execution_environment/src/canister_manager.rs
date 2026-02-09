@@ -1,4 +1,5 @@
 use crate::as_round_instructions;
+use crate::execution::common::validate_controller_or_super_user;
 use crate::execution::install_code::{OriginalContext, validate_controller};
 use crate::execution::{install::execute_install, upgrade::execute_upgrade};
 use crate::execution_environment::{
@@ -70,6 +71,7 @@ use ic_wasm_types::WasmHash;
 use more_asserts::{debug_assert_ge, debug_assert_le};
 use num_traits::{SaturatingAdd, SaturatingSub};
 use prometheus::IntCounter;
+use std::collections::BTreeSet;
 use std::iter::zip;
 use std::path::PathBuf;
 use std::{convert::TryFrom, str::FromStr, sync::Arc};
@@ -940,6 +942,7 @@ impl CanisterManager {
         state: &mut ReplicatedState,
         round_limits: &mut RoundLimits,
         canister_not_found_error: &IntCounter,
+        super_users: &BTreeSet<PrincipalId>,
     ) -> Result<(), CanisterManagerError> {
         let sender = origin.origin();
         let time = state.time();
@@ -948,11 +951,11 @@ impl CanisterManager {
             None => return Err(CanisterManagerError::CanisterNotFound(canister_id)),
         };
 
-        // Skip the controller validation if the sender is the governance
-        // canister. The governance canister can forcefully
+        // Skip the controller or super users validation if the sender is the
+        // governance canister. The governance canister can forcefully
         // uninstall the code of any canister.
         if sender != GOVERNANCE_CANISTER_ID.get() {
-            validate_controller(canister, &sender)?
+            validate_controller_or_super_user(canister, super_users, &sender)?;
         }
 
         let rejects = uninstall_canister(
@@ -1002,6 +1005,7 @@ impl CanisterManager {
         canister_id: CanisterId,
         mut stop_context: StopCanisterContext,
         state: &mut ReplicatedState,
+        super_users: &BTreeSet<PrincipalId>,
     ) -> StopCanisterResult {
         let canister = match state.canister_state_mut(&canister_id) {
             None => {
@@ -1013,7 +1017,9 @@ impl CanisterManager {
             Some(canister) => canister,
         };
 
-        if let Err(err) = validate_controller(canister, stop_context.sender()) {
+        if let Err(err) =
+            validate_controller_or_super_user(canister, super_users, stop_context.sender())
+        {
             return StopCanisterResult::Failure {
                 error: err,
                 cycles_to_return: stop_context.take_cycles(),
@@ -1045,8 +1051,9 @@ impl CanisterManager {
         &self,
         sender: PrincipalId,
         canister: &mut CanisterState,
+        super_users: &BTreeSet<PrincipalId>,
     ) -> Result<Vec<StopCanisterContext>, CanisterManagerError> {
-        validate_controller(canister, &sender)?;
+        validate_controller_or_super_user(canister, super_users, &sender)?;
 
         let stop_contexts = canister.system_state.start_canister();
         canister.system_state.bump_canister_version();
@@ -1198,6 +1205,7 @@ impl CanisterManager {
         canister_id_to_delete: CanisterId,
         state: &mut ReplicatedState,
         round_limits: &mut RoundLimits,
+        super_users: &BTreeSet<PrincipalId>,
     ) -> Result<(), CanisterManagerError> {
         if let Ok(canister_id) = CanisterId::try_from(sender)
             && canister_id == canister_id_to_delete
@@ -1208,8 +1216,7 @@ impl CanisterManager {
 
         let canister_to_delete = self.validate_canister_exists(state, canister_id_to_delete)?;
 
-        // Validate the request is from the controller.
-        validate_controller(canister_to_delete, &sender)?;
+        validate_controller_or_super_user(canister_to_delete, super_users, &sender)?;
 
         self.validate_canister_is_stopped(canister_to_delete)?;
 

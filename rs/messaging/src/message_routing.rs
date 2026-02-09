@@ -43,7 +43,8 @@ use ic_types::registry::RegistryClientError;
 use ic_types::state_manager::StateManagerError;
 use ic_types::xnet::{StreamHeader, StreamIndex};
 use ic_types::{
-    Height, NodeId, NumBytes, PrincipalIdBlobParseError, RegistryVersion, SubnetId, Time,
+    Height, NodeId, NumBytes, PrincipalId, PrincipalIdBlobParseError, RegistryVersion, SubnetId,
+    Time,
 };
 use ic_utils_thread::JoinOnDrop;
 #[cfg(test)]
@@ -921,6 +922,15 @@ impl<RegistryClient_: RegistryClient> BatchProcessorImpl<RegistryClient_> {
             CanisterCyclesCostScheduleProto::try_from(subnet_record.canister_cycles_cost_schedule)
                 .unwrap_or(CanisterCyclesCostScheduleProto::Normal),
         );
+        let mut super_users = BTreeSet::new();
+        for p in subnet_record.super_users.into_iter() {
+            let super_user = PrincipalId::try_from(p).map_err(|err| {
+                ReadRegistryError::Persistent(format!(
+                    "'failed to read super users from subnet record', err: {err:?}"
+                ))
+            })?;
+            super_users.insert(super_user);
+        }
 
         let own_subnet_type: SubnetType = subnet_record.subnet_type.try_into().unwrap_or_default();
         self.metrics
@@ -970,6 +980,7 @@ impl<RegistryClient_: RegistryClient> BatchProcessorImpl<RegistryClient_> {
                 node_ids: nodes,
                 registry_version,
                 canister_cycles_cost_schedule,
+                super_users,
             },
             node_public_keys,
             api_boundary_nodes,

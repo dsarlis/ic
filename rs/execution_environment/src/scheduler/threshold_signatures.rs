@@ -667,6 +667,7 @@ mod tests {
                 node_ids: BTreeSet::new(),
                 registry_version: RegistryVersion::from(0),
                 canister_cycles_cost_schedule: Default::default(),
+                super_users: BTreeSet::new(),
             },
             &SchedulerMetrics::new(&MetricsRegistry::new()),
             &SchedulerConfig {

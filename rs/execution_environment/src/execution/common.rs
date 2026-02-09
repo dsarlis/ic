@@ -2,7 +2,10 @@
 // TODO(RUN-60): Move helper functions here.
 
 use crate::execution_environment::ExecutionResponse;
-use crate::{ExecuteMessageResult, RoundLimits, as_round_instructions, metrics::CallTreeMetrics};
+use crate::{
+    ExecuteMessageResult, RoundLimits, as_round_instructions,
+    canister_manager::types::CanisterManagerError, metrics::CallTreeMetrics,
+};
 use ic_base_types::{CanisterId, NumBytes, SubnetId};
 use ic_embedders::{
     wasm_executor::{CanisterStateChanges, ExecutionStateChanges, SliceExecutionOutput},
@@ -28,9 +31,10 @@ use ic_types::messages::{
 };
 use ic_types::methods::{Callback, WasmMethod};
 use ic_types::time::CoarseTime;
-use ic_types::{Cycles, NumInstructions, Time, UserId};
+use ic_types::{Cycles, NumInstructions, PrincipalId, Time, UserId};
 use lazy_static::lazy_static;
 use prometheus::IntCounter;
+use std::collections::BTreeSet;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
@@ -334,6 +338,24 @@ pub(crate) fn validate_message(
     validate_method(wasm_method, canister)
         .map_err(|err| err.into_user_error(&canister.canister_id()))?;
 
+    Ok(())
+}
+
+pub(crate) fn validate_controller_or_super_user(
+    canister: &CanisterState,
+    super_users: &BTreeSet<PrincipalId>,
+    sender: &PrincipalId,
+) -> Result<(), CanisterManagerError> {
+    if !canister.controllers().contains(sender) {
+        return Err(CanisterManagerError::CanisterInvalidController {
+            canister_id: canister.canister_id(),
+            controllers_expected: canister.system_state.controllers.clone(),
+            controller_provided: *sender,
+        });
+    }
+    if !super_users.contains(sender) {
+        return Err(CanisterManagerError::CallerNotAuthorized);
+    }
     Ok(())
 }
 
