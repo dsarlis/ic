@@ -44,9 +44,9 @@ use ic_management_canister_types_private::{
     ClearChunkStoreArgs, CreateCanisterArgs, EmptyBlob, EnvironmentVariable, IC_00,
     InstallCodeArgsV2, Method, NodeMetricsHistoryArgs, NodeMetricsHistoryResponse,
     OnLowWasmMemoryHookStatus, Payload, ProvisionalCreateCanisterWithCyclesArgs,
-    RenameCanisterArgs, RenameToArgs, StoredChunksArgs, StoredChunksReply, SubnetInfoArgs,
-    SubnetInfoResponse, TakeCanisterSnapshotArgs, UpdateSettingsArgs, UploadChunkArgs,
-    UploadChunkReply, WasmMemoryPersistence,
+    ProvisionalTopUpCanisterArgs, RenameCanisterArgs, RenameToArgs, StoredChunksArgs,
+    StoredChunksReply, SubnetInfoArgs, SubnetInfoResponse, TakeCanisterSnapshotArgs,
+    UpdateSettingsArgs, UploadChunkArgs, UploadChunkReply, WasmMemoryPersistence,
 };
 use ic_metrics::MetricsRegistry;
 use ic_registry_provisional_whitelist::ProvisionalWhitelist;
@@ -1296,28 +1296,33 @@ fn canister_only_accept_calls_if_running() {
 
 #[test]
 fn start_a_stopped_canister_succeeds() {
-    with_setup(|canister_manager, mut state, _| {
-        let sender = user_test_id(1).get();
-        let canister_id = canister_test_id(0);
-        let canister = get_stopped_canister(canister_id);
-        state.put_canister_state(canister);
+    let mut test = ExecutionTestBuilder::new().build();
 
-        // Canister should be stopped.
-        assert_eq!(
-            state.canister_state(&canister_id).unwrap().status(),
-            CanisterStatusType::Stopped
-        );
+    let canister_id = test.create_canister(*INITIAL_CYCLES);
 
-        // Start the canister.
-        let canister = state.canister_state_mut(&canister_id).unwrap();
-        canister_manager.start_canister(sender, canister).unwrap();
+    // Stop the canister...
+    test.subnet_message(
+        Method::StopCanister,
+        CanisterIdRecord::from(canister_id).encode(),
+    )
+    .unwrap();
+    // ... and it should be stopped.
+    assert_eq!(
+        test.canister_state(canister_id).status(),
+        CanisterStatusType::Stopped
+    );
 
-        // Canister should now be running.
-        assert_eq!(
-            state.canister_state(&canister_id).unwrap().status(),
-            CanisterStatusType::Running
-        );
-    });
+    // Start the canister...
+    test.subnet_message(
+        Method::StartCanister,
+        CanisterIdRecord::from(canister_id).encode(),
+    )
+    .unwrap();
+    // ... and it should be running again.
+    assert_eq!(
+        test.canister_state(canister_id).status(),
+        CanisterStatusType::Running
+    );
 }
 
 #[test]
@@ -2164,65 +2169,42 @@ fn can_get_canister_balance() {
 
 #[test]
 fn add_cycles_sender_in_whitelist() {
-    let subnet_id = subnet_test_id(1);
-    let subnet_type = SubnetType::Application;
-    let cycles_account_manager = CyclesAccountManagerBuilder::new()
-        .with_subnet_type(subnet_type)
+    let mut test = ExecutionTestBuilder::new()
+        .with_provisional_whitelist_all()
         .build();
 
-    let canister_manager = CanisterManagerBuilder::default()
-        .with_subnet_id(subnet_id)
-        .with_cycles_account_manager(cycles_account_manager)
-        .build();
+    let canister_id = test.create_canister(*INITIAL_CYCLES);
 
-    let canister_id = canister_test_id(0);
-    let canister = get_running_canister(canister_id);
-    let sender = canister_test_id(1).get();
+    let top_up_amount = 123;
+    test.subnet_message(
+        Method::ProvisionalTopUpCanister,
+        ProvisionalTopUpCanisterArgs::new(canister_id, top_up_amount).encode(),
+    )
+    .unwrap();
 
-    let mut state = initial_state(subnet_id, false);
-    let initial_cycles = canister.system_state.balance();
-    state.put_canister_state(canister);
-
-    let canister = state.canister_state_mut(&canister_id).unwrap();
-    canister_manager
-        .add_cycles(
-            sender,
-            Some(123),
-            canister,
-            &ProvisionalWhitelist::Set(btreeset! { canister_test_id(1).get() }),
-        )
-        .unwrap();
-
-    // Verify cycles are set as expected.
-    let canister = state.take_canister_state(&canister_id).unwrap();
     assert_eq!(
-        canister.system_state.balance(),
-        initial_cycles + Cycles::new(123),
+        test.canister_state(canister_id).system_state.balance(),
+        *INITIAL_CYCLES + Cycles::new(top_up_amount)
     );
 }
 
 #[test]
 fn add_cycles_sender_not_in_whitelist() {
-    with_setup(|canister_manager, mut state, _| {
-        let canister_id = canister_test_id(0);
-        let canister = get_running_canister(canister_id);
-        let sender = canister_test_id(1).get();
+    let mut test = ExecutionTestBuilder::new().build();
 
-        state.put_canister_state(canister);
+    let canister_id = test.create_canister(*INITIAL_CYCLES);
 
-        // By default, the `CanisterManager`'s whitelist is set to `None`.
-        // A call to `add_cycles` should fail.
-        let canister = state.canister_state_mut(&canister_id).unwrap();
-        assert_eq!(
-            canister_manager.add_cycles(
-                sender,
-                Some(123),
-                canister,
-                &ProvisionalWhitelist::Set(BTreeSet::new()),
-            ),
-            Err(CanisterManagerError::SenderNotInWhitelist(sender))
-        );
-    });
+    // Attempt to send cycles to the canister from a sender not in the whilelist.
+    // (By default, the whitelist of the `ExecutionTest` is empty)
+    let result = test
+        .subnet_message(
+            Method::ProvisionalTopUpCanister,
+            ProvisionalTopUpCanisterArgs::new(canister_id, 1_000_000_000).encode(),
+        )
+        .unwrap_err();
+
+    // See comment in `impl From<CanisterManagerError> for UserError` for the error code mapping.
+    assert_eq!(result.code(), ErrorCode::CanisterMethodNotFound);
 }
 
 #[test]
