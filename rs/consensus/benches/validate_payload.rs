@@ -40,11 +40,11 @@ use ic_protobuf::types::v1 as pb;
 use ic_registry_subnet_type::SubnetType;
 use ic_state_manager::StateManagerImpl;
 use ic_test_utilities::{
-    cycles_account_manager::CyclesAccountManagerBuilder,
     self_validating_payload_builder::FakeSelfValidatingPayloadBuilder,
     xnet_payload_builder::FakeXNetPayloadBuilder,
 };
 use ic_test_utilities_consensus::{batch::MockBatchPayloadBuilder, fake::*, make_genesis};
+use ic_test_utilities_cycles_account_manager::CyclesAccountManagerBuilder;
 use ic_test_utilities_registry::{SubnetRecordBuilder, setup_registry};
 use ic_test_utilities_state::ReplicatedStateBuilder;
 use ic_test_utilities_time::FastForwardTimeSource;

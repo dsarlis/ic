@@ -69,10 +69,10 @@ use ic_state_machine_tests::{
     StateMachine, StateMachineBuilder, StateMachineConfig, two_subnets_simple,
 };
 use ic_test_utilities::{
-    cycles_account_manager::CyclesAccountManagerBuilder,
     state_manager::FakeStateManager,
     universal_canister::{UNIVERSAL_CANISTER_WASM, call_args, wasm},
 };
+use ic_test_utilities_cycles_account_manager::CyclesAccountManagerBuilder;
 use ic_test_utilities_execution_environment::{
     ExecutionTest, ExecutionTestBuilder, assert_delta,
     cycles_reserved_for_app_and_verified_app_subnets, get_reject, get_reply,

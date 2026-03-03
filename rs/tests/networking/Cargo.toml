@@ -40,6 +40,7 @@ ic-registry-subnet-type = { path = "../../registry/subnet_type" }
 ic-system-test-driver = { path = "../driver" }
 ic-universal-canister = { path = "../../universal_canister/lib" }
 ic-test-utilities = { path = "../../test_utilities" }
+ic-test-utilities-cycles-account-manager = { path = "../../test_utilities/cycles_account_manager" }
 ic-test-utilities-types = { path = "../../test_utilities/types" }
 ic-types = { path = "../../types/types" }
 ic-utils = { workspace = true }

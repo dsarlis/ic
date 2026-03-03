@@ -8,7 +8,7 @@ use ic_management_canister_types_private::{
 };
 use ic_registry_subnet_type::SubnetType;
 use ic_replicated_state::testing::CanisterQueuesTesting;
-use ic_test_utilities::cycles_account_manager::CyclesAccountManagerBuilder;
+use ic_test_utilities_cycles_account_manager::CyclesAccountManagerBuilder;
 use ic_test_utilities_logger::with_test_replica_logger;
 use ic_test_utilities_metrics::{
     HistogramStats, MetricVec, fetch_histogram_stats, fetch_int_counter_vec, metric_vec,

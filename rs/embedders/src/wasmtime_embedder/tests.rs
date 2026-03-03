@@ -29,7 +29,7 @@ use ic_registry_subnet_type::SubnetType;
 use ic_replicated_state::page_map::TestPageAllocatorFileDescriptorImpl;
 use ic_replicated_state::{Memory, NetworkTopology, SystemState};
 use ic_sys::PageIndex;
-use ic_test_utilities::cycles_account_manager::CyclesAccountManagerBuilder;
+use ic_test_utilities_cycles_account_manager::CyclesAccountManagerBuilder;
 use ic_test_utilities_types::ids::canister_test_id;
 use ic_types::{
     ComputeAllocation, Cycles, MemoryAllocation, NumBytes, NumInstructions,

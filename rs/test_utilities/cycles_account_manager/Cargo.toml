@@ -1,0 +1,15 @@
+[package]
+name = "ic-test-utilities-cycles-account-manager"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+description.workspace = true
+documentation.workspace = true
+
+[dependencies]
+ic-config = { path = "../../config" }
+ic-cycles-account-manager = { path = "../../cycles_account_manager" }
+ic-registry-subnet-type = { path = "../../registry/subnet_type" }
+ic-replicated-state = { path = "../../replicated_state" }
+ic-test-utilities-types = { path = "../types" }
+ic-types = { path = "../../types/types" }

@@ -64,6 +64,7 @@ ic-state-manager = { path = "../state_manager" }
 ic-sys = { path = "../sys" }
 ic-test-artifact-pool = { path = "../test_utilities/artifact_pool" }
 ic-test-utilities = { path = "../test_utilities" }
+ic-test-utilities-cycles-account-manager = { path = "../test_utilities/cycles_account_manager" }
 ic-test-utilities-consensus = { path = "../test_utilities/consensus" }
 ic-test-utilities-logger = { path = "../test_utilities/logger" }
 ic-test-utilities-registry = { path = "../test_utilities/registry" }

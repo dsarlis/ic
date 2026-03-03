@@ -240,10 +240,8 @@ pub(crate) mod tests {
     use ic_registry_client_fake::FakeRegistryClient;
     use ic_registry_keys::make_subnet_record_key;
     use ic_registry_proto_data_provider::ProtoRegistryDataProvider;
-    use ic_test_utilities::{
-        artifact_pool_config::with_test_pool_config,
-        cycles_account_manager::CyclesAccountManagerBuilder,
-    };
+    use ic_test_utilities::artifact_pool_config::with_test_pool_config;
+    use ic_test_utilities_cycles_account_manager::CyclesAccountManagerBuilder;
     use ic_test_utilities_logger::with_test_replica_logger;
     use ic_test_utilities_registry::test_subnet_record;
     use ic_test_utilities_state::{MockIngressHistory, ReplicatedStateBuilder};

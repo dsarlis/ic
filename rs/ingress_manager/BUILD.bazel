@@ -34,6 +34,7 @@ DEV_DEPENDENCIES = [
     "//rs/registry/keys",
     "//rs/registry/proto_data_provider",
     "//rs/test_utilities",
+    "//rs/test_utilities/cycles_account_manager",
     "//rs/test_utilities/logger",
     "//rs/test_utilities/registry",
     "//rs/test_utilities/state",

@@ -83,6 +83,7 @@ rust_ic_test(
     ],
     deps = [
         # Keep sorted.
+        "//res/test_utilities/cycles_account_manager",
         "//rs/crypto/sha2",
         "//rs/interfaces",
         "//rs/registry/routing_table",

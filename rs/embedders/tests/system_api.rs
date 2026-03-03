@@ -17,7 +17,7 @@ use ic_registry_subnet_type::SubnetType;
 use ic_replicated_state::{
     CallOrigin, Memory, NetworkTopology, NumWasmPages, SystemState, testing::CanisterQueuesTesting,
 };
-use ic_test_utilities::cycles_account_manager::CyclesAccountManagerBuilder;
+use ic_test_utilities_cycles_account_manager::CyclesAccountManagerBuilder;
 use ic_test_utilities_state::SystemStateBuilder;
 use ic_test_utilities_types::{
     ids::{call_context_test_id, canister_test_id, subnet_test_id, user_test_id},

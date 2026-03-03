@@ -37,7 +37,7 @@ use ic_replicated_state::{
     CanisterQueues, RefundPool, ReplicatedState, SystemMetadata,
     canister_snapshots::CanisterSnapshots,
 };
-use ic_test_utilities::cycles_account_manager::CyclesAccountManagerBuilder;
+use ic_test_utilities_cycles_account_manager::CyclesAccountManagerBuilder;
 use ic_test_utilities_registry::test_subnet_record;
 use ic_test_utilities_state::{MockIngressHistory, ReplicatedStateBuilder};
 use ic_test_utilities_time::FastForwardTimeSource;

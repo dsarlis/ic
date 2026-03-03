@@ -21,7 +21,7 @@ use ic_registry_subnet_type::SubnetType;
 use ic_replicated_state::{
     CallOrigin, NetworkTopology, SystemState, page_map::TestPageAllocatorFileDescriptorImpl,
 };
-use ic_test_utilities::cycles_account_manager::CyclesAccountManagerBuilder;
+use ic_test_utilities_cycles_account_manager::CyclesAccountManagerBuilder;
 use ic_test_utilities_embedders::DEFAULT_NUM_INSTRUCTIONS;
 use ic_test_utilities_state::SystemStateBuilder;
 use ic_test_utilities_types::ids::user_test_id;

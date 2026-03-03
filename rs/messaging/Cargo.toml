@@ -49,6 +49,7 @@ ic-registry-transport = { path = "../registry/transport" }
 ic-state-machine-tests = { path = "../state_machine_tests" }
 ic-state-manager = { path = "../state_manager" }
 ic-test-utilities = { path = "../test_utilities" }
+ic-test-utilities-cycles-account-manager = { path = "../test_utilities/cycles_account_manager" }
 ic-test-utilities-execution-environment = { path = "../test_utilities/execution_environment" }
 ic-test-utilities-logger = { path = "../test_utilities/logger" }
 ic-test-utilities-metrics = { path = "../test_utilities/metrics" }

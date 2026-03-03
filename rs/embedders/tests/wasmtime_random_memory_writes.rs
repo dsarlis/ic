@@ -18,7 +18,7 @@ use ic_logger::{ReplicaLogger, replica_logger::no_op_logger};
 use ic_registry_subnet_type::SubnetType;
 use ic_replicated_state::{Memory, NetworkTopology, NumWasmPages};
 use ic_sys::PAGE_SIZE;
-use ic_test_utilities::cycles_account_manager::CyclesAccountManagerBuilder;
+use ic_test_utilities_cycles_account_manager::CyclesAccountManagerBuilder;
 use ic_test_utilities_execution_environment::bytes_and_logging_cost;
 use ic_test_utilities_logger::with_test_replica_logger;
 use ic_test_utilities_state::SystemStateBuilder;

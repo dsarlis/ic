@@ -773,10 +773,8 @@ pub(crate) mod tests {
     use ic_management_canister_types_private::{CanisterIdRecord, IC_00, Payload};
     use ic_metrics::MetricsRegistry;
     use ic_replicated_state::CanisterState;
-    use ic_test_utilities::{
-        artifact_pool_config::with_test_pool_config,
-        cycles_account_manager::CyclesAccountManagerBuilder,
-    };
+    use ic_test_utilities::artifact_pool_config::with_test_pool_config;
+    use ic_test_utilities_cycles_account_manager::CyclesAccountManagerBuilder;
     use ic_test_utilities_logger::with_test_replica_logger;
     use ic_test_utilities_state::{
         CanisterStateBuilder, MockIngressHistory, ReplicatedStateBuilder,

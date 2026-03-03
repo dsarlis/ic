@@ -63,6 +63,7 @@ rust_test(
         "//rs/registry/transport",
         "//rs/state_manager",
         "//rs/test_utilities",
+        "//rs/test_utilities/cycles_account_manager",
         "//rs/test_utilities/execution_environment",
         "//rs/test_utilities/logger",
         "//rs/test_utilities/metrics",

@@ -1,7 +1,6 @@
 pub use ic_universal_canister as universal_canister;
 pub mod artifact_pool_config;
 pub mod assert_utils;
-pub mod cycles_account_manager;
 pub mod empty_wasm;
 pub mod ingress_selector;
 pub mod message_routing;

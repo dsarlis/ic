@@ -40,7 +40,7 @@ use ic_system_test_driver::{
     systest,
     util::{block_on, get_app_subnet_and_node},
 };
-use ic_test_utilities::cycles_account_manager::CyclesAccountManagerBuilder;
+use ic_test_utilities_cycles_account_manager::CyclesAccountManagerBuilder;
 use ic_test_utilities_types::messages::RequestBuilder;
 use ic_types::{
     batch::CanisterCyclesCostSchedule,

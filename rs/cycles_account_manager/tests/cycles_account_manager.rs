@@ -11,7 +11,7 @@ use ic_replicated_state::{
     canister_state::{execution_state::WasmExecutionMode, system_state::CyclesUseCase},
     testing::SystemStateTesting,
 };
-use ic_test_utilities::cycles_account_manager::CyclesAccountManagerBuilder;
+use ic_test_utilities_cycles_account_manager::CyclesAccountManagerBuilder;
 use ic_test_utilities_logger::with_test_replica_logger;
 use ic_test_utilities_state::{
     SystemStateBuilder, new_canister_state, new_canister_state_with_execution,
