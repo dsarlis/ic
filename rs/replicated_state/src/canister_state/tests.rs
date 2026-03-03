@@ -32,7 +32,9 @@ use ic_types::messages::{
 use ic_types::methods::{Callback, WasmClosure};
 use ic_types::time::{CoarseTime, UNIX_EPOCH};
 use ic_types::{CountBytes, Time};
-use ic_types_cycles::{Cycles, CyclesUseCase, NominalCycles};
+use ic_types_cycles::{
+    CanisterCyclesCostSchedule, CompoundCycles, Cycles, CyclesUseCase, NominalCycles,
+};
 use ic_wasm_types::CanisterModule;
 use prometheus::IntCounter;
 use strum::IntoEnumIterator;
@@ -143,12 +145,14 @@ impl CanisterStateFixture {
         &mut self,
         msg: RequestOrResponse,
         subnet_type: SubnetType,
+        cost_schedule: CanisterCyclesCostSchedule,
         input_queue_type: InputQueueType,
     ) -> Result<bool, (StateError, RequestOrResponse)> {
         self.canister_state.push_input(
             msg,
             &mut SUBNET_AVAILABLE_MEMORY.clone(),
             subnet_type,
+            cost_schedule,
             input_queue_type,
         )
     }
@@ -176,6 +180,7 @@ impl CanisterStateFixture {
             self.push_input(
                 message.clone(),
                 SubnetType::Application,
+                CanisterCyclesCostSchedule::Normal,
                 InputQueueType::RemoteSubnet,
             )
             .unwrap()
@@ -207,6 +212,7 @@ fn canister_state_push_input_request_success() {
             .push_input(
                 default_input_request(NO_DEADLINE),
                 SubnetType::Application,
+                CanisterCyclesCostSchedule::Normal,
                 InputQueueType::RemoteSubnet,
             )
             .unwrap()
@@ -227,6 +233,7 @@ fn canister_state_push_input_response_success() {
             .push_input(
                 response,
                 SubnetType::Application,
+                CanisterCyclesCostSchedule::Normal,
                 InputQueueType::RemoteSubnet,
             )
             .unwrap()
@@ -247,6 +254,7 @@ fn canister_state_push_input_guaranteed_response_no_reserved_slot() {
         fixture.push_input(
             response.into(),
             SubnetType::Application,
+            CanisterCyclesCostSchedule::Normal,
             InputQueueType::RemoteSubnet
         ),
     );
@@ -266,6 +274,7 @@ fn canister_state_push_input_best_effort_response_no_reserved_slot() {
             .push_input(
                 response.clone().into(),
                 SubnetType::Application,
+                CanisterCyclesCostSchedule::Normal,
                 InputQueueType::RemoteSubnet,
             )
             .unwrap()
@@ -277,6 +286,7 @@ fn canister_state_push_input_best_effort_response_no_reserved_slot() {
             .push_input(
                 response.clone().into(),
                 SubnetType::Application,
+                CanisterCyclesCostSchedule::Normal,
                 InputQueueType::RemoteSubnet,
             )
             .unwrap()
@@ -309,6 +319,7 @@ fn canister_state_push_input_best_effort_response_canister_stopped() {
         fixture.push_input(
             response.into(),
             SubnetType::Application,
+            CanisterCyclesCostSchedule::Normal,
             InputQueueType::RemoteSubnet
         )
     );
@@ -325,6 +336,7 @@ fn canister_state_push_input_guaranteed_response_no_matching_callback() {
         fixture.push_input(
             response,
             SubnetType::Application,
+            CanisterCyclesCostSchedule::Normal,
             InputQueueType::RemoteSubnet
         ),
         Err((StateError::NonMatchingResponse { .. }, _))
@@ -346,6 +358,7 @@ fn canister_state_push_input_best_effort_response_no_matching_callback() {
             .push_input(
                 response,
                 SubnetType::Application,
+                CanisterCyclesCostSchedule::Normal,
                 InputQueueType::RemoteSubnet,
             )
             .unwrap()
@@ -363,6 +376,7 @@ fn canister_state_push_input_guaranteed_response_mismatched_callback() {
         fixture.push_input(
             response.clone().into(),
             SubnetType::Application,
+            CanisterCyclesCostSchedule::Normal,
             InputQueueType::RemoteSubnet
         ),
         Err((
@@ -382,6 +396,7 @@ fn canister_state_push_input_best_effort_response_mismatched_callback() {
         fixture.push_input(
             response.clone().into(),
             SubnetType::Application,
+            CanisterCyclesCostSchedule::Normal,
             InputQueueType::RemoteSubnet
         ),
         Err((
@@ -404,6 +419,7 @@ fn canister_state_push_input_request_mismatched_receiver() {
             .build()
             .into(),
         SubnetType::Application,
+        CanisterCyclesCostSchedule::Normal,
         InputQueueType::RemoteSubnet,
     );
 }
@@ -419,6 +435,7 @@ fn canister_state_push_input_response_mismatched_originator() {
             .build()
             .into(),
         SubnetType::Application,
+        CanisterCyclesCostSchedule::Normal,
         InputQueueType::RemoteSubnet,
     );
 }
@@ -435,6 +452,7 @@ fn canister_state_push_input_guaranteed_response_duplicate_of_paused_response() 
         fixture.push_input(
             response.clone(),
             SubnetType::Application,
+            CanisterCyclesCostSchedule::Normal,
             InputQueueType::RemoteSubnet,
         ),
         Err((StateError::NonMatchingResponse { err_str, .. }, r))
@@ -457,6 +475,7 @@ fn canister_state_push_input_best_effort_response_duplicate_of_paused_response()
             .push_input(
                 response.clone(),
                 SubnetType::Application,
+                CanisterCyclesCostSchedule::Normal,
                 InputQueueType::RemoteSubnet,
             )
             .unwrap()
@@ -511,6 +530,7 @@ fn canister_state_induct_messages_to_self_duplicate_of_paused_response(deadline:
             .push_input(
                 request.clone().into(),
                 SubnetType::Application,
+                CanisterCyclesCostSchedule::Normal,
                 InputQueueType::LocalSubnet,
             )
             .unwrap()
@@ -523,6 +543,7 @@ fn canister_state_induct_messages_to_self_duplicate_of_paused_response(deadline:
             .push_input(
                 response.clone().into(),
                 SubnetType::Application,
+                CanisterCyclesCostSchedule::Normal,
                 InputQueueType::LocalSubnet,
             )
             .unwrap()
@@ -567,6 +588,7 @@ fn application_subnet_remote_push_input_request_not_enough_subnet_memory() {
         NO_DEADLINE,
         13,
         SubnetType::Application,
+        CanisterCyclesCostSchedule::Normal,
         InputQueueType::RemoteSubnet,
         true,
     );
@@ -578,6 +600,7 @@ fn application_subnet_local_push_input_request_not_enough_subnet_memory() {
         NO_DEADLINE,
         13,
         SubnetType::Application,
+        CanisterCyclesCostSchedule::Normal,
         InputQueueType::LocalSubnet,
         true,
     );
@@ -589,6 +612,7 @@ fn system_subnet_remote_push_input_request_not_enough_subnet_memory() {
         NO_DEADLINE,
         13,
         SubnetType::System,
+        CanisterCyclesCostSchedule::Normal,
         InputQueueType::RemoteSubnet,
         true,
     );
@@ -600,6 +624,7 @@ fn system_subnet_local_push_input_request_ignores_subnet_memory() {
         NO_DEADLINE,
         13,
         SubnetType::System,
+        CanisterCyclesCostSchedule::Normal,
         InputQueueType::LocalSubnet,
         false,
     );
@@ -611,6 +636,7 @@ fn application_subnet_push_input_best_effort_request_ignores_subnet_memory() {
         SOME_DEADLINE,
         -13,
         SubnetType::Application,
+        CanisterCyclesCostSchedule::Normal,
         InputQueueType::RemoteSubnet,
         false,
     );
@@ -622,6 +648,7 @@ fn system_subnet_push_input_best_effort_request_ignores_subnet_memory() {
         SOME_DEADLINE,
         -13,
         SubnetType::System,
+        CanisterCyclesCostSchedule::Normal,
         InputQueueType::RemoteSubnet,
         false,
     );
@@ -638,6 +665,7 @@ fn canister_state_push_input_request_memory_limit_test_impl(
     deadline: CoarseTime,
     initial_subnet_available_memory: i64,
     own_subnet_type: SubnetType,
+    own_cost_schedule: CanisterCyclesCostSchedule,
     input_queue_type: InputQueueType,
     should_enforce_limit: bool,
 ) {
@@ -650,6 +678,7 @@ fn canister_state_push_input_request_memory_limit_test_impl(
         request.clone(),
         &mut subnet_available_memory,
         own_subnet_type,
+        own_cost_schedule,
         input_queue_type,
     );
     if should_enforce_limit {
@@ -685,6 +714,7 @@ fn system_subnet_remote_push_input_request_ignores_memory_reservation_and_execut
 
     // Remote message inducted into system subnet.
     let own_subnet_type = SubnetType::System;
+    let own_cost_schedule = CanisterCyclesCostSchedule::Normal;
     let input_queue_type = InputQueueType::RemoteSubnet;
 
     // Tiny explicit allocation, not enough for a request.
@@ -714,6 +744,7 @@ fn system_subnet_remote_push_input_request_ignores_memory_reservation_and_execut
                 request,
                 &mut subnet_available_memory,
                 own_subnet_type,
+                own_cost_schedule,
                 input_queue_type,
             )
             .unwrap()
@@ -736,6 +767,7 @@ fn system_subnet_remote_push_input_request_ignores_memory_reservation_and_execut
 fn application_subnet_remote_push_input_response_ignores_memory_limits() {
     canister_state_push_input_response_memory_limit_test_impl(
         SubnetType::Application,
+        CanisterCyclesCostSchedule::Normal,
         InputQueueType::RemoteSubnet,
     );
 }
@@ -744,6 +776,7 @@ fn application_subnet_remote_push_input_response_ignores_memory_limits() {
 fn application_subnet_local_push_input_response_ignores_memory_limits() {
     canister_state_push_input_response_memory_limit_test_impl(
         SubnetType::Application,
+        CanisterCyclesCostSchedule::Normal,
         InputQueueType::LocalSubnet,
     );
 }
@@ -752,6 +785,7 @@ fn application_subnet_local_push_input_response_ignores_memory_limits() {
 fn system_subnet_remote_push_input_response_ignores_memory_limits() {
     canister_state_push_input_response_memory_limit_test_impl(
         SubnetType::System,
+        CanisterCyclesCostSchedule::Normal,
         InputQueueType::RemoteSubnet,
     );
 }
@@ -760,6 +794,7 @@ fn system_subnet_remote_push_input_response_ignores_memory_limits() {
 fn system_subnet_local_push_input_response_ignores_memory_limits() {
     canister_state_push_input_response_memory_limit_test_impl(
         SubnetType::System,
+        CanisterCyclesCostSchedule::Normal,
         InputQueueType::LocalSubnet,
     );
 }
@@ -773,6 +808,7 @@ fn system_subnet_local_push_input_response_ignores_memory_limits() {
 /// always return memory).
 fn canister_state_push_input_response_memory_limit_test_impl(
     own_subnet_type: SubnetType,
+    own_cost_schedule: CanisterCyclesCostSchedule,
     input_queue_type: InputQueueType,
 ) {
     let mut fixture = CanisterStateFixture::new();
@@ -790,6 +826,7 @@ fn canister_state_push_input_response_memory_limit_test_impl(
                 response.clone(),
                 &mut subnet_available_memory,
                 own_subnet_type,
+                own_cost_schedule,
                 input_queue_type,
             )
             .unwrap()
@@ -831,6 +868,7 @@ fn canister_state_ingress_induction_cycles_debit() {
     let system_state = &mut CanisterStateFixture::new().canister_state.system_state;
     let initial_balance = system_state.balance();
     let ingress_induction_debit = Cycles::new(42);
+    let cost_schedule = CanisterCyclesCostSchedule::Normal;
     system_state.add_postponed_charge_to_ingress_induction_cycles_debit(ingress_induction_debit);
     assert_eq!(
         ingress_induction_debit,
@@ -844,6 +882,7 @@ fn canister_state_ingress_induction_cycles_debit() {
 
     system_state.apply_ingress_induction_cycles_debit(
         system_state.canister_id(),
+        cost_schedule,
         &no_op_logger(),
         &mock_metrics(),
     );
@@ -872,15 +911,21 @@ fn canister_state_ingress_induction_cycles_debit() {
             .get(&CyclesUseCase::IngressInduction)
             .unwrap(),
         NominalCycles::from(ingress_induction_debit.get()),
-    );
+    )
 }
+
 const INITIAL_CYCLES: Cycles = Cycles::new(1 << 36);
 
 #[test]
 fn update_balance_and_consumed_cycles_correctly() {
     let mut system_state = CanisterStateFixture::new().canister_state.system_state;
     let initial_consumed_cycles = Cycles::new(1000);
-    system_state.remove_cycles(initial_consumed_cycles, CyclesUseCase::Memory);
+    let cost_schedule = CanisterCyclesCostSchedule::Normal;
+    system_state.remove_cycles(CompoundCycles::new(
+        initial_consumed_cycles,
+        ic_types_cycles::Memory,
+        cost_schedule,
+    ));
     assert_eq!(
         system_state.balance(),
         INITIAL_CYCLES - initial_consumed_cycles
@@ -891,7 +936,11 @@ fn update_balance_and_consumed_cycles_correctly() {
     );
 
     let cycles = Cycles::new(100);
-    system_state.add_cycles(cycles, CyclesUseCase::Memory);
+    system_state.add_cycles(CompoundCycles::new(
+        cycles,
+        ic_types_cycles::Memory,
+        cost_schedule,
+    ));
     assert_eq!(
         system_state.balance(),
         INITIAL_CYCLES - initial_consumed_cycles + cycles
@@ -906,10 +955,19 @@ fn update_balance_and_consumed_cycles_correctly() {
 fn update_balance_and_consumed_cycles_by_use_case_correctly() {
     let mut system_state = CanisterStateFixture::new().canister_state.system_state;
     let cycles_to_consume = Cycles::from(1000u128);
-    system_state.remove_cycles(cycles_to_consume, CyclesUseCase::Memory);
+    let cost_schedule = CanisterCyclesCostSchedule::Normal;
+    system_state.remove_cycles(CompoundCycles::new(
+        cycles_to_consume,
+        ic_types_cycles::Memory,
+        cost_schedule,
+    ));
 
     let cycles_to_add = Cycles::from(100u128);
-    system_state.add_cycles(cycles_to_add, CyclesUseCase::Memory);
+    system_state.add_cycles(CompoundCycles::new(
+        cycles_to_add,
+        ic_types_cycles::Memory,
+        cost_schedule,
+    ));
     assert_eq!(
         system_state.balance(),
         INITIAL_CYCLES - cycles_to_consume + cycles_to_add

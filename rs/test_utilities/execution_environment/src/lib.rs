@@ -440,11 +440,9 @@ impl ExecutionTest {
         let instructions = self
             .canister_snapshot_baseline_instructions
             .saturating_add(&new_snapshot_size.get().into());
-        self.cycles_account_manager.management_canister_cost(
-            instructions,
-            self.subnet_size(),
-            self.cost_schedule(),
-        )
+        self.cycles_account_manager
+            .management_canister_cost(instructions, self.subnet_size(), self.cost_schedule())
+            .real()
     }
 
     pub fn canister_execution_cost(&self, canister_id: CanisterId) -> Cycles {
@@ -470,14 +468,16 @@ impl ExecutionTest {
             .memory_allocation;
         let compute_allocation = self.canister_state(canister_id).compute_allocation();
         let message_memory_usage = self.canister_state(canister_id).message_memory_usage();
-        self.cycles_account_manager.idle_cycles_burned_rate(
-            memory_allocation,
-            memory_usage,
-            message_memory_usage,
-            compute_allocation,
-            self.subnet_size(),
-            self.cost_schedule(),
-        )
+        self.cycles_account_manager
+            .idle_cycles_burned_rate(
+                memory_allocation,
+                memory_usage,
+                message_memory_usage,
+                compute_allocation,
+                self.subnet_size(),
+                self.cost_schedule(),
+            )
+            .real()
     }
 
     pub fn freezing_threshold(&self, canister_id: CanisterId) -> Cycles {
@@ -487,56 +487,67 @@ impl ExecutionTest {
         let memory_allocation = canister.system_state.memory_allocation;
         let compute_allocation = canister.compute_allocation();
         let freeze_threshold = canister.system_state.freeze_threshold;
-        self.cycles_account_manager.freeze_threshold_cycles(
-            freeze_threshold,
-            memory_allocation,
-            memory_usage,
-            message_memory_usage,
-            compute_allocation,
-            self.subnet_size(),
-            self.cost_schedule(),
-            canister.system_state.reserved_balance(),
-        )
+        self.cycles_account_manager
+            .freeze_threshold_cycles(
+                freeze_threshold,
+                memory_allocation,
+                memory_usage,
+                message_memory_usage,
+                compute_allocation,
+                self.subnet_size(),
+                self.cost_schedule(),
+                canister.system_state.reserved_balance(),
+            )
+            .real()
     }
 
     pub fn call_fee<S: ToString>(&self, method_name: S, payload: &[u8]) -> Cycles {
-        self.cycles_account_manager
+        let fee = self
+            .cycles_account_manager
             .xnet_call_performed_fee(self.subnet_size(), self.cost_schedule())
             + self.cycles_account_manager.xnet_call_bytes_transmitted_fee(
                 NumBytes::from((payload.len() + method_name.to_string().len()) as u64),
                 self.subnet_size(),
                 self.cost_schedule(),
-            )
+            );
+        fee.real()
     }
 
     pub fn max_response_fee(&self) -> Cycles {
-        self.cycles_account_manager.xnet_call_bytes_transmitted_fee(
-            MAX_INTER_CANISTER_PAYLOAD_IN_BYTES,
-            self.subnet_size(),
-            self.cost_schedule(),
-        )
+        self.cycles_account_manager
+            .xnet_call_bytes_transmitted_fee(
+                MAX_INTER_CANISTER_PAYLOAD_IN_BYTES,
+                self.subnet_size(),
+                self.cost_schedule(),
+            )
+            .real()
     }
 
     pub fn reply_fee(&self, payload: &[u8]) -> Cycles {
-        self.cycles_account_manager.xnet_call_bytes_transmitted_fee(
-            NumBytes::from(payload.len() as u64),
-            self.subnet_size(),
-            self.cost_schedule(),
-        )
+        self.cycles_account_manager
+            .xnet_call_bytes_transmitted_fee(
+                NumBytes::from(payload.len() as u64),
+                self.subnet_size(),
+                self.cost_schedule(),
+            )
+            .real()
     }
 
     pub fn reject_fee<S: ToString>(&self, reject_message: S) -> Cycles {
         let bytes = reject_message.to_string().len() + std::mem::size_of::<RejectCode>();
-        self.cycles_account_manager.xnet_call_bytes_transmitted_fee(
-            NumBytes::from(bytes as u64),
-            self.subnet_size(),
-            self.cost_schedule(),
-        )
+        self.cycles_account_manager
+            .xnet_call_bytes_transmitted_fee(
+                NumBytes::from(bytes as u64),
+                self.subnet_size(),
+                self.cost_schedule(),
+            )
+            .real()
     }
 
     pub fn canister_creation_fee(&self) -> Cycles {
         self.cycles_account_manager
             .canister_creation_fee(self.subnet_size(), self.cost_schedule())
+            .real()
     }
 
     pub fn http_request_fee(
@@ -571,12 +582,14 @@ impl ExecutionTest {
 
     pub fn install_code_reserved_execution_cycles(&self) -> Cycles {
         let num_instructions = self.install_code_instruction_limits.message();
-        self.cycles_account_manager.execution_cost(
-            num_instructions,
-            self.subnet_size(),
-            self.cost_schedule(),
-            WasmExecutionMode::Wasm32, // For this test, we can assume a Wasm32 execution.
-        )
+        self.cycles_account_manager
+            .execution_cost(
+                num_instructions,
+                self.subnet_size(),
+                self.cost_schedule(),
+                WasmExecutionMode::Wasm32, // For this test, we can assume a Wasm32 execution.
+            )
+            .real()
     }
 
     pub fn subnet_available_memory(&self) -> SubnetAvailableMemory {
@@ -1511,12 +1524,14 @@ impl ExecutionTest {
                     _ => unreachable!(),
                 };
                 let execution_mode = wasm_execution_mode(wasm_source);
-                self.cycles_account_manager().execution_cost(
-                    instructions_used,
-                    subnet_size,
-                    cost_schedule,
-                    execution_mode,
-                )
+                self.cycles_account_manager()
+                    .execution_cost(
+                        instructions_used,
+                        subnet_size,
+                        cost_schedule,
+                        execution_mode,
+                    )
+                    .real()
             }
             Ok(Method::LoadCanisterSnapshot) => {
                 let payload = LoadCanisterSnapshotArgs::decode(message.method_payload()).unwrap();
@@ -1524,12 +1539,14 @@ impl ExecutionTest {
                 let wasm_module = snapshot.execution_snapshot().wasm_binary.clone();
                 let wasm_source = WasmSource::CanisterModule(wasm_module);
                 let execution_mode = wasm_execution_mode(wasm_source);
-                self.cycles_account_manager().execution_cost(
-                    instructions_used,
-                    subnet_size,
-                    cost_schedule,
-                    execution_mode,
-                )
+                self.cycles_account_manager()
+                    .execution_cost(
+                        instructions_used,
+                        subnet_size,
+                        cost_schedule,
+                        execution_mode,
+                    )
+                    .real()
             }
             Ok(Method::UploadChunk)
             | Ok(Method::TakeCanisterSnapshot)
@@ -1537,7 +1554,8 @@ impl ExecutionTest {
             | Ok(Method::UploadCanisterSnapshotMetadata)
             | Ok(Method::UploadCanisterSnapshotData) => self
                 .cycles_account_manager()
-                .management_canister_cost(instructions_used, subnet_size, cost_schedule),
+                .management_canister_cost(instructions_used, subnet_size, cost_schedule)
+                .real(),
             _ => {
                 // no instructions should be charged for other methods and thus
                 // we should never attempt to compute their cycles cost
@@ -1934,7 +1952,7 @@ impl ExecutionTest {
         *self
             .execution_cost
             .entry(canister_id)
-            .or_insert(Cycles::new(0)) += instruction_cost;
+            .or_insert(Cycles::new(0)) += instruction_cost.real();
     }
 
     /// Inducts messages between canisters and pushes all cross-net messages to
@@ -1953,6 +1971,7 @@ impl ExecutionTest {
                         message.clone(),
                         &mut subnet_available_guaranteed_response_memory,
                         state.metadata.own_subnet_type,
+                        self.cost_schedule(),
                         InputQueueType::LocalSubnet,
                     );
                     if result.is_err() {
@@ -2160,17 +2179,20 @@ impl ExecutionTest {
         subnet_memory_saturation: &ResourceSaturation,
         allocated_bytes: NumBytes,
     ) -> Cycles {
-        self.cycles_account_manager.storage_reservation_cycles(
-            allocated_bytes,
-            subnet_memory_saturation,
-            self.subnet_size(),
-            self.cost_schedule(),
-        )
+        self.cycles_account_manager
+            .storage_reservation_cycles(
+                allocated_bytes,
+                subnet_memory_saturation,
+                self.subnet_size(),
+                self.cost_schedule(),
+            )
+            .real()
     }
 
     pub fn prepayment_for_response_execution(&self, mode: WasmExecutionMode) -> Cycles {
         self.cycles_account_manager
             .prepayment_for_response_execution(self.subnet_size(), self.cost_schedule(), mode)
+            .real()
     }
 
     pub fn refund_for_response_transmission(&self, response: &ResponsePayload) -> Cycles {
@@ -2187,6 +2209,7 @@ impl ExecutionTest {
                 self.subnet_size(),
                 self.cost_schedule(),
             )
+            .real()
     }
 
     pub fn consume_cycles(&mut self, canister_id: CanisterId, cycles: Cycles) {
@@ -2196,7 +2219,7 @@ impl ExecutionTest {
         cycles_account_manager
             .consume_with_threshold(
                 system_state,
-                cycles,
+                CompoundCycles::new(cycles, CyclesUseCase::Memory, cost_schedule),
                 Cycles::zero(),
                 CyclesUseCase::Memory,
                 false,

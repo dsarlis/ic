@@ -32,7 +32,9 @@ use ic_types::{
     },
     time::CoarseTime,
 };
-use ic_types_cycles::{CanisterCyclesCostSchedule, CyclesUseCase, NominalCycles};
+use ic_types_cycles::{
+    CanisterCyclesCostSchedule, CompoundCycles, CyclesUseCase, NominalCycles, NonConsumed,
+};
 use ic_validate_eq::ValidateEq;
 use ic_validate_eq_derive::ValidateEq;
 use rand::{Rng, SeedableRng};
@@ -980,6 +982,11 @@ impl ReplicatedState {
         subnet_available_guaranteed_response_memory: &mut i64,
     ) -> Result<bool, (StateError, RequestOrResponse)> {
         let own_subnet_type = self.metadata.own_subnet_type;
+        let own_cost_schedule = self
+            .metadata
+            .network_topology
+            .get_cost_schedule(&self.metadata.own_subnet_id)
+            .unwrap_or_default();
         let sender = msg.sender();
         let input_queue_type = if sender.get_ref() == self.metadata.own_subnet_id.get_ref()
             || self.canister_states.contains_key(&sender)
@@ -995,6 +1002,7 @@ impl ReplicatedState {
                 msg,
                 subnet_available_guaranteed_response_memory,
                 own_subnet_type,
+                own_cost_schedule,
                 input_queue_type,
             ),
             None => {
@@ -1057,11 +1065,17 @@ impl ReplicatedState {
     ///
     /// Returns `true` if the recipient canister exists and was credited, `false`
     /// otherwise.
-    pub fn credit_refund(&mut self, refund: &Refund) -> bool {
+    pub fn credit_refund(
+        &mut self,
+        refund: &Refund,
+        cost_schedule: CanisterCyclesCostSchedule,
+    ) -> bool {
         if let Some(canister) = self.canister_state_make_mut(&refund.recipient()) {
-            canister
-                .system_state
-                .add_cycles(refund.amount(), CyclesUseCase::NonConsumed);
+            canister.system_state.add_cycles(CompoundCycles::new(
+                refund.amount(),
+                NonConsumed,
+                cost_schedule,
+            ));
             true
         } else {
             false

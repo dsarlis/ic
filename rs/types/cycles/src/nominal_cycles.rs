@@ -3,7 +3,7 @@ use ic_protobuf::{proxy::ProxyDecodeError, types::v1 as pb};
 use serde::{Deserialize, Serialize};
 use std::{
     fmt,
-    ops::{Add, AddAssign, Sub, SubAssign},
+    ops::{Add, AddAssign, Div, Mul, Sub, SubAssign},
 };
 
 use std::convert::{From, TryFrom};
@@ -45,6 +45,10 @@ impl NominalCycles {
     pub fn low64(&self) -> u64 {
         (self.0 & 0xffff_ffff_ffff_ffff) as u64
     }
+
+    pub fn is_zero(&self) -> bool {
+        self.0 == 0
+    }
 }
 
 impl From<u128> for NominalCycles {
@@ -78,6 +82,22 @@ impl Sub for NominalCycles {
 impl SubAssign for NominalCycles {
     fn sub_assign(&mut self, rhs: Self) {
         self.0 = self.0.saturating_sub(rhs.0)
+    }
+}
+
+impl Mul<u64> for NominalCycles {
+    type Output = Self;
+
+    fn mul(self, rhs: u64) -> Self {
+        Self(self.0.saturating_mul(rhs as u128))
+    }
+}
+
+impl Div<u128> for NominalCycles {
+    type Output = Self;
+
+    fn div(self, rhs: u128) -> Self {
+        Self(self.0.saturating_div(rhs))
     }
 }
 

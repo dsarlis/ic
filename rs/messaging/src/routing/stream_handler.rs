@@ -997,8 +997,9 @@ impl StreamHandlerImpl {
         match receiver_host_subnet {
             // Matching receiver subnet, try crediting the cycles.
             Some(host_subnet) if host_subnet == self.subnet_id => {
+                let cost_schedule = state.get_own_cost_schedule();
                 stream.push_accept_signal();
-                if state.credit_refund(refund) {
+                if state.credit_refund(refund, cost_schedule) {
                     self.observe_inducted_message_status(
                         LABEL_VALUE_TYPE_REFUND,
                         LABEL_VALUE_SUCCESS,
