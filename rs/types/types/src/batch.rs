@@ -14,8 +14,8 @@ pub use self::{
         MAX_CANISTER_HTTP_PAYLOAD_SIZE,
     },
     execution_environment::{
-        CanisterCyclesCostSchedule, CanisterQueryStats, LocalQueryStats, QueryStats,
-        QueryStatsPayload, RawQueryStats, TotalQueryStats,
+        CanisterQueryStats, LocalQueryStats, QueryStats, QueryStatsPayload, RawQueryStats,
+        TotalQueryStats,
     },
     ingress::{IngressPayload, IngressPayloadError},
     self_validating::{MAX_BITCOIN_PAYLOAD_IN_BYTES, SelfValidatingPayload},
