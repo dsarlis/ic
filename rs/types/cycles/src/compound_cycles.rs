@@ -1,10 +1,11 @@
 use crate::{
     cycles::Cycles,
     cycles_cost_schedule::CanisterCyclesCostSchedule,
-    cycles_use_case::{CyclesUseCase, CyclesUseCaseKind},
+    cycles_use_case::{CyclesUseCase, CyclesUseCaseKind, CyclesUseCaseSerializableKind},
     nominal_cycles::NominalCycles,
 };
 use ic_protobuf::{proxy::ProxyDecodeError, state::queues::v1::CompoundCycles as PbCompoundCycles};
+use serde::ser::SerializeStruct;
 use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
 use std::ops::{Add, AddAssign, Div, Mul, Sub, SubAssign};
@@ -74,7 +75,7 @@ use std::ops::{Add, AddAssign, Div, Mul, Sub, SubAssign};
 /// let total = cc_instructions + cc_memory;
 /// assert_eq!(total.real(), Cycles::new(30));
 /// ```
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
 pub struct CompoundCycles<T: CyclesUseCaseKind> {
     real: Cycles,
     nominal: NominalCycles,
@@ -216,5 +217,104 @@ impl<T: CyclesUseCaseKind> TryFrom<PbCompoundCycles> for CompoundCycles<T> {
             nominal,
             _cycles_use_case_marker: PhantomData,
         })
+    }
+}
+
+impl<'a, T: CyclesUseCaseSerializableKind<'a>> Serialize for CompoundCycles<T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut s = serializer.serialize_struct("CompoundCycles", 2)?;
+        s.serialize_field("real", &self.real)?;
+        s.serialize_field("nominal", &self.nominal)?;
+        s.end()
+    }
+}
+
+impl<'de, T: CyclesUseCaseSerializableKind<'de>> Deserialize<'de> for CompoundCycles<T> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        use serde::de::{Error, MapAccess, SeqAccess, Visitor};
+
+        #[derive(Deserialize)]
+        #[serde(field_identifier, rename_all = "lowercase")]
+        enum Field {
+            Real,
+            Nominal,
+        }
+
+        struct CompoundCyclesVisitor<T> {
+            _marker: std::marker::PhantomData<T>,
+        }
+
+        impl<'de, T: Deserialize<'de> + CyclesUseCaseSerializableKind<'de>> Visitor<'de>
+            for CompoundCyclesVisitor<T>
+        {
+            type Value = CompoundCycles<T>;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("struct CompoundCycles")
+            }
+
+            fn visit_seq<V>(self, mut seq: V) -> Result<CompoundCycles<T>, V::Error>
+            where
+                V: SeqAccess<'de>,
+            {
+                let real = seq
+                    .next_element()?
+                    .ok_or_else(|| Error::invalid_length(0, &self))?;
+                let nominal = seq
+                    .next_element()?
+                    .ok_or_else(|| Error::invalid_length(1, &self))?;
+                Ok(CompoundCycles {
+                    real,
+                    nominal,
+                    _cycles_use_case_marker: PhantomData,
+                })
+            }
+
+            fn visit_map<V>(self, mut map: V) -> Result<CompoundCycles<T>, V::Error>
+            where
+                V: MapAccess<'de>,
+            {
+                let mut real = None;
+                let mut nominal = None;
+                while let Some(key) = map.next_key()? {
+                    match key {
+                        Field::Real => {
+                            if real.is_some() {
+                                return Err(Error::duplicate_field("real"));
+                            }
+                            real = Some(map.next_value()?);
+                        }
+                        Field::Nominal => {
+                            if nominal.is_some() {
+                                return Err(Error::duplicate_field("nominal"));
+                            }
+                            nominal = Some(map.next_value()?);
+                        }
+                    }
+                }
+                let real = real.ok_or_else(|| Error::missing_field("real"))?;
+                let nominal = nominal.ok_or_else(|| Error::missing_field("nominal"))?;
+                Ok(CompoundCycles {
+                    real,
+                    nominal,
+                    _cycles_use_case_marker: PhantomData,
+                })
+            }
+        }
+
+        const FIELDS: &[&str] = &["real", "nominal"];
+        deserializer.deserialize_struct(
+            "CompoundCycles",
+            FIELDS,
+            CompoundCyclesVisitor {
+                _marker: std::marker::PhantomData,
+            },
+        )
     }
 }

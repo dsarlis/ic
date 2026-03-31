@@ -109,6 +109,14 @@ pub trait CyclesUseCaseKind: Copy + Clone + Debug {
     fn cycles_use_case() -> CyclesUseCase;
 }
 
+/// Marker trait to bound the use cases that need to be serializable when used
+/// in `CompoundCycles`, e.g. if they need to be stored in checkpoints or used
+/// in the IPC between the replica and the sandbox.
+pub trait CyclesUseCaseSerializableKind<'a>:
+    CyclesUseCaseKind + Serialize + Deserialize<'a>
+{
+}
+
 /*
  * Empty structs are added for each use case to act like tags that can be used
  * to allow the compiler to enforce type-safe operations on `CompoundCycles`
@@ -143,7 +151,7 @@ impl CyclesUseCaseKind for IngressInduction {
     }
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Serialize, Deserialize)]
 pub struct Instructions;
 
 impl CyclesUseCaseKind for Instructions {
@@ -152,7 +160,9 @@ impl CyclesUseCaseKind for Instructions {
     }
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
+impl CyclesUseCaseSerializableKind<'_> for Instructions {}
+
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Serialize, Deserialize)]
 pub struct RequestAndResponseTransmission;
 
 impl CyclesUseCaseKind for RequestAndResponseTransmission {
@@ -160,6 +170,8 @@ impl CyclesUseCaseKind for RequestAndResponseTransmission {
         CyclesUseCase::RequestAndResponseTransmission
     }
 }
+
+impl CyclesUseCaseSerializableKind<'_> for RequestAndResponseTransmission {}
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
 pub struct Uninstall;
@@ -215,7 +227,7 @@ impl CyclesUseCaseKind for NonConsumed {
     }
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Serialize, Deserialize)]
 pub struct BurnedCycles;
 
 impl CyclesUseCaseKind for BurnedCycles {
@@ -223,6 +235,10 @@ impl CyclesUseCaseKind for BurnedCycles {
         CyclesUseCase::BurnedCycles
     }
 }
+
+// `BurnedCycles` needs to be serializable as it can be returned by the sandbox
+// to the replica after a message execution
+impl CyclesUseCaseSerializableKind<'_> for BurnedCycles {}
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
 pub struct SchnorrOutcalls;
